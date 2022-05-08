@@ -59,7 +59,11 @@ wsServer.on('connection', (socket) => {
     switch (type) {
       case CLIENT.MESSAGE.NEW_USER:
         payload.time = new Date().toLocaleString();
-        broadcast(JSON.stringify({ type, payload }));
+        broadcast(JSON.stringify({ type, payload }), socket);
+        break;
+      case CLIENT.MESSAGE.USER_LEFT:
+        payload.time = new Date().toLocaleString();
+        broadcast(JSON.stringify({ type, payload }), socket);
         break;
       case CLIENT.MESSAGE.NEW_MESSAGE:
         payload.time = new Date().toLocaleTimeString();
@@ -74,6 +78,14 @@ wsServer.on('connection', (socket) => {
     }
 
   });
+
+  // socket.on('close', (data) => {
+  //   console.log(data);
+  //   broadcast(JSON.stringify({
+  //     type: CLIENT.MESSAGE.USER_LEFT,
+  //     payload: { message: 'User has left the chat room' }
+  //   }));
+  // });
 });
 
 // Exercise 7: Send a message back to the client, echoing the message received

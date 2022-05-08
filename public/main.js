@@ -40,9 +40,11 @@ window.onclick = (e) => {
 usernameForm.onsubmit = (e) => {
     e.preventDefault();
     username = usernameInput.value;
-    usernameModal.style.display = 'none';
     usercolor = Math.floor(Math.random() * 16777215).toString(16);
-    console.log(usercolor);
+    usernameModal.style.display = 'none';
+    // Save to localStorage
+    localStorage.setItem('username', JSON.stringify(username));
+    localStorage.setItem('usercolor', JSON.stringify(usercolor));
     // Start the WebSocket server
     init();
 }
@@ -59,6 +61,19 @@ messageForm.onsubmit = function (e) {
 
     sendMessageToServer(message);
 }
+
+window.addEventListener("beforeunload", () => {
+    console.log("beforeunload happening");
+    const username = JSON.parse(localStorage.getItem('username'));
+    const usercolor = JSON.parse(localStorage.getItem('usercolor'));
+    wsClient.send(JSON.stringify({
+        type: CLIENT.MESSAGE.USER_LEFT,
+        payload: {
+            username,
+            usercolor
+        }
+    }));
+});
 
 ////////////////////////////////////////////////
 ////////////// WS CLIENT LOGIC /////////////////
@@ -105,6 +120,9 @@ function init() {
             case CLIENT.MESSAGE.NEW_USER:
                 showMessageReceived(`<em><strong style='color: #${payload.usercolor};'>${payload.username}</strong> has joint at ${payload.time}!</em>`);
                 break;
+            case CLIENT.MESSAGE.USER_LEFT:
+                showMessageReceived(`<em><strong style='color: #${payload.usercolor};'>${payload.username}</strong> has left at ${payload.time}</em>`);
+                break;
             case CLIENT.MESSAGE.NEW_MESSAGE:
                 showMessageReceived(
                     `<strong style='color: #${payload.usercolor};'>${payload.username}</strong> <span'>${payload.message}</span> <span class='time'>${payload.time.slice(0, -6)}</span>`
@@ -138,7 +156,7 @@ function init() {
 function sendMessageToServer(message) {
     // Make sure the client is connected to the ws server
     if (!wsClient) {
-        showMessageReceived('No WebSocket connection :(');
+        showMessageReceived('No WebSocket connection. Please submit a username');
         return;
     }
 
