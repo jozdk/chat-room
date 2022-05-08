@@ -2,11 +2,16 @@
 ///////////// IMPORTS + VARIABLES /////////////
 ///////////////////////////////////////////////
 
-const http = require('http'); 
-const CONSTANTS = require('./utils/constants.js');
-const fs = require('fs');
-const path = require('path');
-const { WebSocket, WebSocketServer } = require('ws');
+// const http = require('http');
+import http from 'http';
+// const CONSTANTS = require('./utils/constants.js');
+import * as CONSTANTS from './public/utils/constants.js';
+// const fs = require('fs');
+import fs from 'fs';
+// const path = require('path');
+import path from 'path';
+// const { WebSocket, WebSocketServer } = require('ws');
+import { WebSocket, WebSocketServer } from 'ws';
 
 // You may choose to use the constants defined in the file below
 const { PORT, CLIENT } = CONSTANTS;
@@ -18,7 +23,7 @@ const { PORT, CLIENT } = CONSTANTS;
 // Create the HTTP server
 const server = http.createServer((req, res) => {
   // get the file path from req.url, or '/public/index.html' if req.url is '/'
-  const filePath = ( req.url === '/' ) ? '/public/index.html' : req.url;
+  const filePath = (req.url === '/') ? '/index.html' : req.url;
 
   // determine the contentType by the file extension
   const extname = path.extname(filePath);
@@ -28,7 +33,8 @@ const server = http.createServer((req, res) => {
 
   // pipe the proper file to the res object
   res.writeHead(200, { 'Content-Type': contentType });
-  fs.createReadStream(`${__dirname}/${filePath}`, 'utf8').pipe(res);
+  // fs.createReadStream(`${__dirname}/${filePath}`, 'utf8').pipe(res);
+  fs.createReadStream(`${path.join(path.resolve('./'), 'public', filePath)}`, 'utf8').pipe(res);
 });
 
 ///////////////////////////////////////////////
@@ -48,13 +54,31 @@ wsServer.on('connection', (socket) => {
   socket.on('message', (data) => {
     console.log('received: %s', data);
     // socket.send('Message received: ' + data.toString());
-    broadcast(data, socket);
+    const { type, payload } = JSON.parse(data.toString());
+
+    switch (type) {
+      case CLIENT.MESSAGE.NEW_USER:
+        payload.time = new Date().toLocaleString();
+        broadcast(JSON.stringify({ type, payload }));
+        break;
+      case CLIENT.MESSAGE.NEW_MESSAGE:
+        payload.time = new Date().toLocaleTimeString();
+        broadcast(JSON.stringify({ type, payload }), socket);
+        socket.send(JSON.stringify({
+          type: CLIENT.MESSAGE.OWN_MESSAGE_WITH_TIME,
+          payload
+        }));
+        break;
+      default:
+        break;
+    }
+
   });
 });
 
-  // Exercise 7: Send a message back to the client, echoing the message received
-  // Exercise 8: Broadcast messages received to all other clients
-  
+// Exercise 7: Send a message back to the client, echoing the message received
+// Exercise 8: Broadcast messages received to all other clients
+
 
 ///////////////////////////////////////////////
 ////////////// HELPER FUNCTIONS ///////////////

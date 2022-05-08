@@ -1,3 +1,5 @@
+import * as CONSTANTS from '/utils/constants.js';
+
 ////////////////////////////////////////////////
 ////////////// VARIABLES ///////////////////////
 ////////////////////////////////////////////////
@@ -5,6 +7,9 @@
 // This variable will hold the WebSocket client connection. 
 // Initialize in the init() function
 let wsClient;
+let username;
+let usercolor;
+const { CLIENT, PORT } = CONSTANTS;
 
 ////////////////////////////////////////////////
 //////////////// DOM SETUP /////////////////////
@@ -12,6 +17,35 @@ let wsClient;
 
 const messageBox = document.querySelector('#messageBox');
 const messageForm = document.querySelector('#messageForm');
+const usernameModal = document.querySelector('#username-modal');
+const closeModalBtn = document.querySelector('.close');
+const usernameForm = document.querySelector("#username-form");
+const usernameInput = document.querySelector("#username-input");
+
+// Event handler on page load
+document.addEventListener('DOMContentLoaded', () => {
+    usernameModal.style.display = 'block';
+});
+
+closeModalBtn.onclick = () => {
+    usernameModal.style.display = 'none';
+};
+
+window.onclick = (e) => {
+    if (e.target === usernameModal) {
+        usernameModal.style.display = 'none';
+    }
+};
+
+usernameForm.onsubmit = (e) => {
+    e.preventDefault();
+    username = usernameInput.value;
+    usernameModal.style.display = 'none';
+    usercolor = Math.floor(Math.random() * 16777215).toString(16);
+    console.log(usercolor);
+    // Start the WebSocket server
+    init();
+}
 
 // Event handler when the client enters a message
 messageForm.onsubmit = function (e) {
@@ -20,7 +54,7 @@ messageForm.onsubmit = function (e) {
     // Get the message from the messageBox
     const message = messageBox.value;
     // Render the sent message on the client as your own and reset the messageBox
-    showMessageSent(message);
+    // showMessageSent(message);
     messageBox.value = '';
 
     sendMessageToServer(message);
@@ -54,7 +88,10 @@ function init() {
     // Exercise 5: Respond to connections by defining the .onopen event handler.
     wsClient.onopen = () => {
         console.log('Connected to Websocket server!');
-        wsClient.send(JSON.stringify({ type: 'NEW_USER' }));
+        wsClient.send(JSON.stringify({
+            type: CLIENT.MESSAGE.NEW_USER,
+            payload: { username, usercolor }
+        }));
     }
 
     // TODO:
@@ -63,21 +100,22 @@ function init() {
         // showMessageReceived(messageEvent.data);
         const { type, payload } = JSON.parse(messageEvent.data);
 
-        switch(type) {
-            case 'NEW_USER':
-                showMessageReceived('<em>A new user has joint!</em>');
+        // Exercise 9: Parse custom message types, formatting each message based on the type.
+        switch (type) {
+            case CLIENT.MESSAGE.NEW_USER:
+                showMessageReceived(`<em><strong style='color: #${payload.usercolor};'>${payload.username}</strong> has joint at ${payload.time}!</em>`);
                 break;
-            case 'NEW_MESSAGE':
-                showMessageReceived(payload.message);
+            case CLIENT.MESSAGE.NEW_MESSAGE:
+                showMessageReceived(
+                    `<strong style='color: #${payload.usercolor};'>${payload.username}</strong> <span'>${payload.message}</span> <span class='time'>${payload.time.slice(0, -6)}</span>`
+                );
                 break;
+            case CLIENT.MESSAGE.OWN_MESSAGE_WITH_TIME:
+                showMessageSent(`${payload.message} <span class='time' style='color: #fff'>${payload.time.slice(0, -6)}</span>`);
             default:
                 break;
         }
     };
-
-    // Exercise 9: Parse custom message types, formatting each message based on the type.
-
-
 
     /* Note:
     The event handlers below are useful for properly cleaning up a closed/broken WebSocket client connection.
@@ -107,14 +145,12 @@ function sendMessageToServer(message) {
     // TODO:
     // Exercise 6: Send the message from the messageBox to the server
     // wsClient.send(message);
-    
+
     // TODO:
     // Exercise 9: Send the message in a custom message object with .type and .payload properties
     const msgObj = {
-        type: 'NEW_MESSAGE',
-        payload: {
-            message
-        }
+        type: CLIENT.MESSAGE.NEW_MESSAGE,
+        payload: { message, username, usercolor }
     };
 
     wsClient.send(JSON.stringify(msgObj));
@@ -151,6 +187,3 @@ function showNewMessage(message, className) {
     messages.appendChild(messageNode);
     messages.scrollTop = messages.scrollHeight;
 }
-
-// Start the WebSocket server
-init();
