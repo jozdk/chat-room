@@ -62,19 +62,6 @@ messageForm.onsubmit = function (e) {
     sendMessageToServer(message);
 }
 
-window.addEventListener("beforeunload", () => {
-    console.log("beforeunload happening");
-    const username = JSON.parse(localStorage.getItem('username'));
-    const usercolor = JSON.parse(localStorage.getItem('usercolor'));
-    wsClient.send(JSON.stringify({
-        type: CLIENT.MESSAGE.USER_LEFT,
-        payload: {
-            username,
-            usercolor
-        }
-    }));
-});
-
 ////////////////////////////////////////////////
 ////////////// WS CLIENT LOGIC /////////////////
 ////////////////////////////////////////////////

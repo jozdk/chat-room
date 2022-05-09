@@ -16,6 +16,9 @@ import { WebSocket, WebSocketServer } from 'ws';
 // You may choose to use the constants defined in the file below
 const { PORT, CLIENT } = CONSTANTS;
 
+// Active clients
+const clients = [];
+
 ///////////////////////////////////////////////
 ///////////// HTTP SERVER LOGIC ///////////////
 ///////////////////////////////////////////////
@@ -47,8 +50,12 @@ const wsServer = new WebSocketServer({ server });
 
 // TODO
 // Exercise 5: Respond to connection events 
-wsServer.on('connection', (socket) => {
+wsServer.on('connection', (socket, req) => {
   console.log('New client connected!');
+
+  // Give ID
+  // console.log('sec-websocket-key: ', req.headers['sec-websocket-key']);
+  socket.id = req.headers['sec-websocket-key'];
 
   // Exercise 6: Respond to client messages
   socket.on('message', (data) => {
@@ -59,11 +66,12 @@ wsServer.on('connection', (socket) => {
     switch (type) {
       case CLIENT.MESSAGE.NEW_USER:
         payload.time = new Date().toLocaleString();
-        broadcast(JSON.stringify({ type, payload }), socket);
-        break;
-      case CLIENT.MESSAGE.USER_LEFT:
-        payload.time = new Date().toLocaleString();
-        broadcast(JSON.stringify({ type, payload }), socket);
+        broadcast(JSON.stringify({ type, payload }));
+        clients[socket.id] = {
+          id: socket.id,
+          username: payload.username,
+          usercolor: payload.usercolor
+        };
         break;
       case CLIENT.MESSAGE.NEW_MESSAGE:
         payload.time = new Date().toLocaleTimeString();
@@ -79,13 +87,22 @@ wsServer.on('connection', (socket) => {
 
   });
 
-  // socket.on('close', (data) => {
-  //   console.log(data);
-  //   broadcast(JSON.stringify({
-  //     type: CLIENT.MESSAGE.USER_LEFT,
-  //     payload: { message: 'User has left the chat room' }
-  //   }));
-  // });
+  socket.on('close', (data) => {
+    const time = new Date().toLocaleString();
+    
+    broadcast(JSON.stringify({
+      type: CLIENT.MESSAGE.USER_LEFT,
+      payload: {
+        username: clients[socket.id].username,
+        usercolor: clients[socket.id].usercolor,
+        time
+      }
+    }), socket);
+
+    if (clients[socket.id]) {
+      delete clients[socket.id];
+    }
+  });
 });
 
 // Exercise 7: Send a message back to the client, echoing the message received
