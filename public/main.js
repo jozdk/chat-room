@@ -9,7 +9,7 @@ import * as CONSTANTS from '/utils/constants.js';
 let wsClient;
 let username;
 let usercolor;
-const { CLIENT, PORT } = CONSTANTS;
+const { MESSAGES, PORT, COLORS } = CONSTANTS;
 
 ////////////////////////////////////////////////
 //////////////// DOM SETUP /////////////////////
@@ -40,11 +40,9 @@ window.onclick = (e) => {
 usernameForm.onsubmit = (e) => {
     e.preventDefault();
     username = usernameInput.value;
-    usercolor = Math.floor(Math.random() * 16777215).toString(16);
     usernameModal.style.display = 'none';
     // Save to localStorage
     localStorage.setItem('username', JSON.stringify(username));
-    localStorage.setItem('usercolor', JSON.stringify(usercolor));
     // Start the WebSocket server
     init();
 }
@@ -91,8 +89,8 @@ function init() {
     wsClient.onopen = () => {
         console.log('Connected to Websocket server!');
         wsClient.send(JSON.stringify({
-            type: CLIENT.MESSAGE.NEW_USER,
-            payload: { username, usercolor }
+            type: MESSAGES.MESSAGE.NEW_USER,
+            payload: { username }
         }));
     }
 
@@ -104,18 +102,18 @@ function init() {
 
         // Exercise 9: Parse custom message types, formatting each message based on the type.
         switch (type) {
-            case CLIENT.MESSAGE.NEW_USER:
-                showMessageReceived(`<em><strong style='color: #${payload.usercolor};'>${payload.username}</strong> has joint at ${payload.time}!</em>`);
+            case MESSAGES.MESSAGE.NEW_USER:
+                showMessageReceived(`<em><strong style='color: ${payload.usercolor};'>${payload.username}</strong> has joint at ${payload.time}!</em>`);
                 break;
-            case CLIENT.MESSAGE.USER_LEFT:
-                showMessageReceived(`<em><strong style='color: #${payload.usercolor};'>${payload.username}</strong> has left at ${payload.time}</em>`);
+            case MESSAGES.MESSAGE.USER_LEFT:
+                showMessageReceived(`<em><strong style='color: ${payload.usercolor};'>${payload.username}</strong> has left at ${payload.time}</em>`);
                 break;
-            case CLIENT.MESSAGE.NEW_MESSAGE:
+            case MESSAGES.MESSAGE.NEW_MESSAGE:
                 showMessageReceived(
-                    `<strong style='color: #${payload.usercolor};'>${payload.username}</strong> <span'>${payload.message}</span> <span class='time'>${payload.time.slice(0, -6)}</span>`
+                    `<strong style='color: ${payload.usercolor};'>${payload.username}</strong> <span'>${payload.message}</span> <span class='time'>${payload.time.slice(0, -6)}</span>`
                 );
                 break;
-            case CLIENT.MESSAGE.OWN_MESSAGE_WITH_TIME:
+            case MESSAGES.MESSAGE.OWN_MESSAGE_WITH_TIME:
                 showMessageSent(`${payload.message} <span class='time' style='color: #fff'>${payload.time.slice(0, -6)}</span>`);
             default:
                 break;
@@ -154,8 +152,8 @@ function sendMessageToServer(message) {
     // TODO:
     // Exercise 9: Send the message in a custom message object with .type and .payload properties
     const msgObj = {
-        type: CLIENT.MESSAGE.NEW_MESSAGE,
-        payload: { message, username, usercolor }
+        type: MESSAGES.MESSAGE.NEW_MESSAGE,
+        payload: { message, username }
     };
 
     wsClient.send(JSON.stringify(msgObj));

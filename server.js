@@ -14,10 +14,11 @@ import path from 'path';
 import { WebSocket, WebSocketServer } from 'ws';
 
 // You may choose to use the constants defined in the file below
-const { PORT, CLIENT } = CONSTANTS;
+const { PORT, MESSAGES, COLORS } = CONSTANTS;
 
 // Active clients
 const clients = [];
+const colorsLeft = [...Object.values(COLORS)];
 
 ///////////////////////////////////////////////
 ///////////// HTTP SERVER LOGIC ///////////////
@@ -59,25 +60,20 @@ wsServer.on('connection', (socket, req) => {
 
   // Exercise 6: Respond to client messages
   socket.on('message', (data) => {
-    console.log('received: %s', data);
+    // console.log('received: %s', data);
     // socket.send('Message received: ' + data.toString());
     const { type, payload } = JSON.parse(data.toString());
 
     switch (type) {
-      case CLIENT.MESSAGE.NEW_USER:
-        payload.time = new Date().toLocaleString();
-        broadcast(JSON.stringify({ type, payload }));
-        clients[socket.id] = {
-          id: socket.id,
-          username: payload.username,
-          usercolor: payload.usercolor
-        };
+      case MESSAGES.MESSAGE.NEW_USER:
+        handleNewUser(data, socket);
         break;
-      case CLIENT.MESSAGE.NEW_MESSAGE:
+      case MESSAGES.MESSAGE.NEW_MESSAGE:
         payload.time = new Date().toLocaleTimeString();
-        broadcast(JSON.stringify({ type, payload }), socket);
+        payload.usercolor = clients[socket.id].usercolor;
+        broadcast({ type, payload }, socket);
         socket.send(JSON.stringify({
-          type: CLIENT.MESSAGE.OWN_MESSAGE_WITH_TIME,
+          type: MESSAGES.MESSAGE.OWN_MESSAGE_WITH_TIME,
           payload
         }));
         break;
@@ -89,15 +85,17 @@ wsServer.on('connection', (socket, req) => {
 
   socket.on('close', (data) => {
     const time = new Date().toLocaleString();
-    
-    broadcast(JSON.stringify({
-      type: CLIENT.MESSAGE.USER_LEFT,
+
+    broadcast({
+      type: MESSAGES.MESSAGE.USER_LEFT,
       payload: {
         username: clients[socket.id].username,
         usercolor: clients[socket.id].usercolor,
         time
       }
-    }), socket);
+    }, socket);
+
+    colorsLeft.push(clients[socket.id].usercolor);
 
     if (clients[socket.id]) {
       delete clients[socket.id];
@@ -118,9 +116,28 @@ function broadcast(data, socketToOmit) {
   // Exercise 8: Implement the broadcast pattern. Exclude the emitting socket!
   wsServer.clients.forEach((connectedClient) => {
     if (connectedClient.readyState === WebSocket.OPEN && connectedClient !== socketToOmit) {
-      connectedClient.send(data.toString());
+      connectedClient.send(JSON.stringify(data));
     }
   });
+}
+
+function handleNewUser(data, socket) {
+  const { type, payload } = JSON.parse(data.toString());
+  payload.time = new Date().toLocaleString();
+
+  if (clients.length <= 8) {
+    payload.usercolor = colorsLeft.splice(Math.floor(Math.random() * colorsLeft.length), 1)[0];
+  } else {
+    payload.usercolor = Math.floor(Math.random() * 16777215).toString(16);
+  }
+
+  broadcast({ type, payload }, socket);
+
+  clients[socket.id] = {
+    id: socket.id,
+    username: payload.username,
+    usercolor: payload.usercolor
+  };
 }
 
 // Start the server listening on localhost:8080
