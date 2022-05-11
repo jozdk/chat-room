@@ -38,7 +38,7 @@ const server = http.createServer((req, res) => {
   // pipe the proper file to the res object
   res.writeHead(200, { 'Content-Type': contentType });
   // fs.createReadStream(`${__dirname}/${filePath}`, 'utf8').pipe(res);
-  fs.createReadStream(`${path.join(path.resolve('./'), 'public', filePath)}`, 'utf8').pipe(res);
+  fs.createReadStream(`${path.resolve("public" + filePath)}`, 'utf8').pipe(res);
 });
 
 ///////////////////////////////////////////////
