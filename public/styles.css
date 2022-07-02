@@ -1,5 +1,6 @@
 html, body {
   height: 100%;
+  margin: 0;
 }
 
 body {
@@ -14,11 +15,12 @@ body {
   flex: 1 0 auto;
   width: 100%;
   border: solid 1px #EEE;
+  border-radius: 5px;
   display: flex;
   flex-direction: column;
   padding: 10px;
   overflow-y: scroll;
-  max-height: calc(100% - 150px);
+  max-height: calc(100% - 200px);
 }
 
 form {
